@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics | CarbonTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>CarbonTrack</h2>
+            <div style="margin-top:20px;">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="emissions.html" class="nav-link">📝 Emissions</a>
+                <a href="analytics.html" class="nav-link active">📈 Analytics & AQI</a>
+            </div>
+            <button class="logout" onclick="sessionStorage.clear(); window.location.href='index.html'">Logout</button>
+        </aside>
+
+        <main class="main">
+            <h1>Advanced Analytics</h1>
+
+            <div class="card" style="margin-top:20px;">
+                <h3>Local AQI Map</h3>
+                <p style="color:#718096; margin-bottom:10px;">Showing real-time PM2.5 sensors near your facility.</p>
+                <div id="aqiMap" style="height: 400px; border-radius:8px;"></div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <h3>Emission Forecast (Linear Regression)</h3>
+                <canvas id="forecastChart" style="max-height:300px;"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script> <script>
+        const user = requireAuth();
+
+        async function loadPage() {
+            // 1. Map
+            const locName = await getOrgLocation(user.org_id);
+            initMap('aqiMap', locName);
+
+            // 2. Forecast
+            const records = await getEmissionRecords(user.org_id);
+            renderTrendChart('forecastChart', records);
+        }
+
+        loadPage();
+    </script>
+</body>
+</html>
