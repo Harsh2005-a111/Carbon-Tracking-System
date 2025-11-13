@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Emissions | CarbonTrack</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>CarbonTrack</h2>
+            <div style="margin-top:20px;">
+                <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+                <a href="emissions.html" class="nav-link active">📝 Emissions</a>
+                <a href="analytics.html" class="nav-link">📈 Analytics & AQI</a>
+            </div>
+            <button class="logout" onclick="sessionStorage.clear(); window.location.href='index.html'">Logout</button>
+        </aside>
+
+        <main class="main">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Emission Records</h1>
+                <button class="btn" style="width:auto;" onclick="document.getElementById('modal').classList.remove('hidden')">+ Add Record</button>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Source</th>
+                            <th>Activity</th>
+                            <th>CO2 (kg)</th>
+                            <th>CH4 (kg)</th>
+                            <th>Total CO2e</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal" class="modal-bg hidden">
+        <div class="login-box">
+            <h3>Add Emission</h3>
+            <form id="addForm">
+                <input type="text" id="recId" placeholder="Record ID (e.g. REC-999)" required>
+                <input type="date" id="recDate" required>
+                <select id="sourceSel" required><option>Loading...</option></select>
+                <select id="actSel" required>
+                    <option value="A001">Stationary Combustion</option>
+                    <option value="A002">Mobile Combustion</option>
+                    <option value="A003">Industrial Process</option>
+                </select>
+                <input type="number" step="0.01" id="co2" placeholder="CO2 Amount" required>
+                <input type="number" step="0.01" id="ch4" placeholder="CH4 Amount" required>
+                <input type="number" step="0.01" id="n2o" placeholder="N2O Amount" required>
+
+                <button type="submit" class="btn">Save Record</button>
+                <button type="button" class="btn" style="background:#718096; margin-top:10px;" onclick="document.getElementById('modal').classList.add('hidden')">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        const user = requireAuth();
+
+        async function init() {
+            // Table
+            const records = await getEmissionRecords(user.org_id);
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = records.map(r => `
+                <tr>
+                    <td>${r.date}</td>
+                    <td>${r.emission_source.source_name}</td>
+                    <td>${r.activity.activity_name}</td>
+                    <td>${r.co2_emission_kg}</td>
+                    <td>${r.ch4_emission_kg}</td>
+                    <td><strong>${formatNum(r.total_co2e)}</strong></td>
+                </tr>
+            `).join('');
+
+            // Dropdown
+            const sources = await getSources(user.org_id);
+            const sel = document.getElementById('sourceSel');
+            sel.innerHTML = sources.map(s => `<option value="${s.source_id}">${s.source_name} (${s.source_type})</option>`).join('');
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rec = {
+                record_id: document.getElementById('recId').value,
+                date: document.getElementById('recDate').value,
+                source_id: document.getElementById('sourceSel').value,
+                activity_id: document.getElementById('actSel').value,
+                co2_emission_kg: document.getElementById('co2').value,
+                ch4_emission_kg: document.getElementById('ch4').value,
+                n2o_emission_kg: document.getElementById('n2o').value
+            };
+
+            const { error } = await addEmissionRecord(rec);
+            if(!error) {
+                document.getElementById('modal').classList.add('hidden');
+                init(); // Refresh table
+            } else {
+                alert("Error: " + error.message);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
